@@ -163,7 +163,8 @@ class EpisodeWriter():
         if colors:
             for idx_color, (color_key, color) in enumerate(colors.items()):
                 color_name = f'{str(idx).zfill(6)}_{color_key}.jpg'
-                if not cv2.imwrite(os.path.join(self.color_dir, color_name), color):
+                color_bgr = cv2.cvtColor(color, cv2.COLOR_RGB2BGR) if len(color.shape) == 3 and color.shape[2] == 3 else color
+                if not cv2.imwrite(os.path.join(self.color_dir, color_name), color_bgr):
                     logger_mp.info(f"Failed to save color image.")
                 item_data['colors'][color_key] = os.path.join('colors', color_name)
 

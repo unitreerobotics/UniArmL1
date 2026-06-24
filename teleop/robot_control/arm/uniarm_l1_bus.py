@@ -51,7 +51,7 @@ class UnitreeMotorSDK:
         self.ser = serial.Serial(
             port,
             BAUDRATE,
-            timeout=0.01,
+            timeout=0.002,
             bytesize=serial.EIGHTBITS,
             parity=serial.PARITY_NONE,
             stopbits=serial.STOPBITS_ONE,
@@ -155,13 +155,12 @@ class UnitreeMotorSDK:
         
 
     def read(self):
-        """接收反馈包（仿照工作版本的超时等待逻辑，但跳过 CRC）"""
-        data = self.ser.read(26)
-        if len(data) != 26:
+        """接收反馈包，并在串口流错位时自动按帧头重同步。"""
+        data = self._read_fast_frame()
+        if data is None:
+            data = self._read_feedback_frame()
+        if data is None:
             return None
-        if data[0] != 0xFC or data[1] != 0xEE:
-            return None
-
         mode_byte = data[2]
         motor_id = mode_byte & 0x0F
         mode = (mode_byte >> 4) & 0x07
@@ -220,6 +219,61 @@ class UnitreeMotorSDK:
         self.last_valid_time[motor_id] = now
 
         return st
+
+    def _is_valid_feedback_frame(self, data: bytes) -> bool:
+        if len(data) != RX_LEN:
+            return False
+        if data[:2] != HEAD_RX:
+            return False
+        crc_received = struct.unpack('<I', data[22:26])[0]
+        crc_computed = self.crc32_lookup(data[2:22])
+        return crc_received == crc_computed
+
+    def _read_fast_frame(self) -> bytes | None:
+        try:
+            data = self.ser.read(RX_LEN)
+        except serial.SerialException as exc:
+            logger.warning("Serial read failed on %s: %s", self.ser.port, exc)
+            return None
+        if self._is_valid_feedback_frame(data):
+            return data
+        return None
+
+    def _read_feedback_frame(self) -> bytes | None:
+        deadline = time.perf_counter() + 0.003
+        frame = bytearray()
+
+        while time.perf_counter() < deadline:
+            try:
+                byte = self.ser.read(1)
+            except serial.SerialException as exc:
+                logger.warning("Serial read failed on %s: %s", self.ser.port, exc)
+                return None
+            if not byte:
+                continue
+
+            if not frame:
+                if byte == HEAD_RX[:1]:
+                    frame.extend(byte)
+                continue
+
+            if len(frame) == 1:
+                if byte == HEAD_RX[1:2]:
+                    frame.extend(byte)
+                    rest = self.ser.read(RX_LEN - 2)
+                    if len(rest) != RX_LEN - 2:
+                        return None
+                    frame.extend(rest)
+                    data = bytes(frame)
+                    if self._is_valid_feedback_frame(data):
+                        return data
+                    frame.clear()
+                elif byte == HEAD_RX[:1]:
+                    frame[:] = byte
+                else:
+                    frame.clear()
+
+        return None
 
 
     def parse_feedback_packet(self,data: bytes):
@@ -320,7 +374,7 @@ class UnitreeMotorsBus:
         # 每个电机独立参数（8个电机，按电机ID索引）
         # 默认值：M0-M7
         if kp_default is None:
-            kp_default = [5.4755e-5, 5.6755e-5, 5.0755e-5, 6.0755e-5, 3.4755e-5, 2.6755e-5, 5.6755e-5, 8.0755e-5]
+            kp_default = [5.4755e-5, 5.6755e-5, 5.0755e-5, 6.0755e-5, 3.4755e-5, 5.6755e-5, 5.6755e-5, 8.0755e-5]
         if kd_default is None:
             kd_default = [9.6889e-6, 1.889e-5, 9.0889e-6, 6.6889e-6, 9.6889e-6, 0.9889e-5, 0.6889e-5, 8.0889e-6]
         if torque_default is None:
@@ -328,7 +382,7 @@ class UnitreeMotorsBus:
         if speed_default is None:
             speed_default = [0.0] * n_motors
         if kp_loop is None:
-            kp_loop = [1.0, 1.2, 0.9, 1.0, 1.0, 1.0, 0.9, 0.8]
+            kp_loop = [1.0, 1.2, 0.9, 1.0, 1.0, 1.8, 0.9, 0.8]
         if kd_loop is None:
             kd_loop = [0.01, 0.04, 0.01, 0.01, 0.01, 0.01, 0.03, 0.01]
 
@@ -358,7 +412,7 @@ class UnitreeMotorsBus:
 
         # 连续 None 计数器（用于检测电机未连接）
         self._consecutive_none_count = 0
-        self._max_consecutive_none = 20
+        self._max_consecutive_none = 200
         self._connection_error = None  # 存储连接错误信息
 
     def close_control(self):
@@ -411,10 +465,8 @@ class UnitreeMotorsBus:
             # 检测连续 None（电机未连接）
             if result is None:
                 self._consecutive_none_count += 1
-                if self._consecutive_none_count >= self._max_consecutive_none:
-                    print(f"   请检查电机电源和串口连接 ({self.port})")
-                    import os
-                    os._exit(1)
+                if self._consecutive_none_count == self._max_consecutive_none:
+                    print(f"   电机反馈连续丢失，请检查电机电源和串口连接 ({self.port}, last motor id={mid})")
             else:
                 self._consecutive_none_count = 0  # 重置计数器
 
@@ -467,7 +519,20 @@ class UnitreeMotorsBus:
                 pos=0.0,
                 timeout_enable=0,
             )
-            self.motors.read()
+            try:
+                fb = self.motors.read()
+            except serial.SerialException as exc:
+                logger.warning("Serial read failed on %s while setting zero damping: %s", self.port, exc)
+                break
+            if fb is None:
+                results.append({
+                    "motor_id": mid,
+                    "OutPos": None,
+                    "pos_rad": None,
+                    "pos_deg": None,
+                    "freq": 0.0,
+                })
+                continue
             
             st = self.motors.motor_states.get(mid)
             if st:
@@ -489,3 +554,15 @@ class UnitreeMotorsBus:
             
         
         return results
+
+    def poll_zero_damping(self, motor_ids: list[int]):
+        for mid in motor_ids:
+            self.motors.write_control_packet(
+                motor_id=mid,
+                status=1,
+                kp=0.0,
+                kd=0.0,
+                pos=0.0,
+                timeout_enable=0,
+            )
+            self.motors.read()
