@@ -193,14 +193,10 @@ python teleop/teleop.py -i vr --record --task-dir ./data/pick_place --task-goal 
 采集的数据可直接用于 [unitree_lerobot](https://github.com/unitreerobotics/unitree_lerobot) 的模仿学习训练与部署，详见 [unitree_lerobot 文档](https://github.com/unitreerobotics/unitree_lerobot)。
 
 <div align="center">
-   <img
-      src="media/readme/eval_demo.gif?raw=true"
-      alt="UniArmL1 策略推理演示"
-      title="UniArmL1 策略推理演示"
-      style="width: 60%;"
-   />
+   <video controls autoplay muted loop playsinline style="width: 60%; border-radius: 10px;">
+      <source src="media/readme/vla_demo.mp4" type="video/mp4" />
+   </video>
 </div>
-
 
 ## 🎉 致谢
 
