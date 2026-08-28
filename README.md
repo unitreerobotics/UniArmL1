@@ -42,18 +42,16 @@ UniArmL1 机械臂的BOM 清单、组装指南与 3D 打印文件请参考：
 👉 [unitree_UniArmL1_hardware](hardware/README_zh-CN.md)
 
 <div align="center">
-   <img
-      src="media/readme/real_follower.png?raw=true"
-      alt="Follower"
-      title="Follower"
-      style="width: 49.5%;"
-    />
-    <img
-      src="media/readme/real_leader.png?raw=true"
-      alt="Leader"
-      title="Leader"
-      style="width: 47%;"
-    />
+<table>
+  <tr>
+    <td style="width: 50%; text-align: center;">
+      <img src="media/readme/real_follower.png?raw=true" alt="Follower" title="Follower" style="width: 100%; height: auto; object-fit: contain; display: block;" />
+    </td>
+    <td style="width: 50%; text-align: center;">
+      <img src="media/readme/real_leader.png?raw=true" alt="Leader" title="Leader" style="width: 98%; height: auto; object-fit: contain; display: block;" />
+    </td>
+  </tr>
+</table>
 </div>
 
 ## 📥 配置环境
@@ -193,14 +191,9 @@ python teleop/teleop.py -i vr --record --task-dir ./data/pick_place --task-goal 
 采集的数据可直接用于 [unitree_lerobot](https://github.com/unitreerobotics/unitree_lerobot) 的模仿学习训练与部署，详见 [unitree_lerobot 文档](https://github.com/unitreerobotics/unitree_lerobot)。
 
 <div align="center">
-   <img
-      src="media/readme/vla_demo.gif?raw=true"
-      alt="UniArmL1 策略推理演示"
-      title="UniArmL1 策略推理演示"
-      style="width: 100%;"
-   />
+   <img src="media/readme/vla_demo1.gif?raw=true" alt="UniArmL1 策略推理演示 1" title="UniArmL1 策略推理演示 1" style="width: 70%; height: auto; object-fit: contain; display: block; margin: 0 auto 20px auto;" />
+   <img src="media/readme/vla_demo2.gif?raw=true" alt="UniArmL1 策略推理演示 2" title="UniArmL1 策略推理演示 2" style="width: 70%; height: auto; object-fit: contain; display: block; margin: 0 auto;" />
 </div>
-
 
 ## 🎉 致谢
 

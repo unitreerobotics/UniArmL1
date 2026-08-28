@@ -12,18 +12,16 @@
 # 0. 📖 介绍
 UniArmL1 是宇树科技设计与开发的 6-DOF 机械臂，现已开源，欢迎大家使用与进一步开发，一起帮助让面向机器人领域的端到端AI技术更加易于获取和使用！
 <div align="center">
-   <img
-      src="../media/readme/real_follower.png?raw=true"
-      alt="UniArmL1 follower"
-      title="UniArmL1 follower"
-      style="width: 42.1%;"
-    />
-   <img
-      src="../media/readme/real_leader.png?raw=true"
-      alt="UniArmL1 leader"
-      title="UniArmL1 leader"
-      style="width: 40%;"
-    />
+<table>
+  <tr>
+    <td style="width: 50%; text-align: center;">
+      <img src="../media/readme/real_follower.png?raw=true" alt="Follower" title="Follower" style="width: 100%; height: auto; object-fit: contain; display: block;" />
+    </td>
+    <td style="width: 50%; text-align: center;">
+      <img src="../media/readme/real_leader.png?raw=true" alt="Leader" title="Leader" style="width: 98%; height: auto; object-fit: contain; display: block;" />
+    </td>
+  </tr>
+</table>
 </div>
 
 通过标准化软硬件接口，UniArmL1 能快速接入现有宇树平台，降低集成与二次开发门槛，缩短从原型到应用的周期。
