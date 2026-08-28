@@ -15,10 +15,10 @@ UniArmL1 是宇树科技设计与开发的 6-DOF 机械臂，现已开源，欢�
 <table>
   <tr>
     <td style="width: 50%; text-align: center;">
-      <img src="../media/readme/real_follower.png?raw=true" alt="Follower" title="Follower" style="width: 100%; height: auto; object-fit: contain; display: block;" />
+      <img src="../media/readme/real_follower.png?raw=true" alt="Follower" title="Follower" style="width: 98%; height: auto; object-fit: contain; display: block;" />
     </td>
     <td style="width: 50%; text-align: center;">
-      <img src="../media/readme/real_leader.png?raw=true" alt="Leader" title="Leader" style="width: 98%; height: auto; object-fit: contain; display: block;" />
+      <img src="../media/readme/real_leader.png?raw=true" alt="Leader" title="Leader" style="width: 100%; height: auto; object-fit: contain; display: block;" />
     </td>
   </tr>
 </table>

@@ -45,10 +45,10 @@ UniArmL1 机械臂的BOM 清单、组装指南与 3D 打印文件请参考：
 <table>
   <tr>
     <td style="width: 50%; text-align: center;">
-      <img src="media/readme/real_follower.png?raw=true" alt="Follower" title="Follower" style="width: 100%; height: auto; object-fit: contain; display: block;" />
+      <img src="media/readme/real_follower.png?raw=true" alt="Follower" title="Follower" style="width: 98%; height: auto; object-fit: contain; display: block;" />
     </td>
     <td style="width: 50%; text-align: center;">
-      <img src="media/readme/real_leader.png?raw=true" alt="Leader" title="Leader" style="width: 98%; height: auto; object-fit: contain; display: block;" />
+      <img src="media/readme/real_leader.png?raw=true" alt="Leader" title="Leader" style="width: 100%; height: auto; object-fit: contain; display: block;" />
     </td>
   </tr>
 </table>
