@@ -157,7 +157,7 @@ UniArmL1 是宇树科技设计与开发的 6-DOF 机械臂，现已开源，欢�
 
 以下为分步装配过程：
 
-1. 基座与0号电机：
+1. 基座与 0 号电机：注意在 0 号电机爆炸图左侧连接通往 1 号电机的排线，并使用 4 颗 M2×10 螺栓固定。
 <div align="center">
    <img
       src="media/base+motor.gif?raw=true"
@@ -167,7 +167,7 @@ UniArmL1 是宇树科技设计与开发的 6-DOF 机械臂，现已开源，欢�
     />
 </div>
 
-2. 基座上套上电机套，电机转轴处固定 Rotation_Pitch:
+2. 在基座上安装电机套，并在电机转轴处固定 Rotation_Pitch；两侧使用 M2×8 螺栓，电机侧使用 M2×10 螺栓。
 <div align="center">
    <img
       src="media/base_holder.gif?raw=true"
@@ -177,7 +177,7 @@ UniArmL1 是宇树科技设计与开发的 6-DOF 机械臂，现已开源，欢�
     />
 </div>
 
-3. 注意，**ID为1和2的电机输出轴是朝向机械臂右侧，将排线插入电机后**，再在 Rotation_Pitch 上固定双电机，arm上的同理。
+3. 注意，**ID 为 1 和 2 的电机输出轴需朝向机械臂右侧，请先接入排线再固定电机**。将双电机固定在 Rotation_Pitch 上，上臂部分同理；电机编号对应关系为 [2, 7; 1, 6]，电机两侧使用 M2×5 螺栓。
 <div align="center">
    <img
       src="media/Upperarm+motor.gif?raw=true"
@@ -187,7 +187,7 @@ UniArmL1 是宇树科技设计与开发的 6-DOF 机械臂，现已开源，欢�
     />
 </div>
 
-4. arm上塞入电机后加装固定保护套，再固定 Wrist_roll_pitch.
+4. 将电机装入 arm 后加装固定保护套，再固定 Wrist_roll_pitch。ID 为 3 的电机输出轴朝左；4 号电机使用 M2×10 螺栓，其余位置使用 M2×8 螺栓。
 <div align="center">
    <img
       src="media/under_arm+wrist_pitch.gif?raw=true"
@@ -197,9 +197,9 @@ UniArmL1 是宇树科技设计与开发的 6-DOF 机械臂，现已开源，欢�
     />
 </div>
 
-5. 最后末端夹爪的装配，有两个注意点
-    - **先固定外壳和motor4**，再将motor5塞入外壳固定，其上固定齿轮连接件。
-    - **先将平行夹爪手指与导轨配合后**，再放到外壳上固定
+5. 最后进行末端夹爪装配，请注意以下两点：
+    - **先固定外壳和 4 号电机**，再将 5 号电机装入外壳并固定，随后安装齿轮连接件。
+    - **先将平行夹爪手指与导轨配合后**，再放置到外壳上固定。
 <div align="center">
    <img
       src="media/Gripper.gif?raw=true"
@@ -207,6 +207,30 @@ UniArmL1 是宇树科技设计与开发的 6-DOF 机械臂，现已开源，欢�
       title="gripper assembly"
       style="width: 80%;"
     />
+</div>
+
+6. 安装 Leader 握把：将扳机机构与 5 号电机输出轴连接。扳机处使用 6 颗 M2×8 螺栓，其余位置使用 8 颗 M2×10 螺栓。
+<div align="center">
+<table>
+  <tr>
+    <td>
+      <img
+        src="media/leader_handle_assembly_1.jpg?raw=true"
+        alt="leader handle assembly 1"
+        title="leader handle assembly 1"
+        style="max-width: 100%;"
+      />
+    </td>
+    <td>
+      <img
+        src="media/leader_handle_assembly_2.jpg?raw=true"
+        alt="leader handle assembly 2"
+        title="leader handle assembly 2"
+        style="max-width: 100%;"
+      />
+    </td>
+  </tr>
+</table>
 </div>
 
 
