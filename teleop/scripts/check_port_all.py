@@ -5,9 +5,10 @@ import time
 
 
 def list_available_ports():
-    """只列出电脑上当前连接的 ACM 串口。"""
+    """只列出电脑上当前连接的 AT32 ACM 电机控制板串口。"""
     ports = serial.tools.list_ports.comports()
     acm_ports = [port for port in ports if port.device.startswith("/dev/ttyACM")]
+    motor_ports = []
 
     print("--- 当前可用 ACM 端口列表 ---")
     if not acm_ports:
@@ -16,7 +17,22 @@ def list_available_ports():
 
     for i, port in enumerate(acm_ports):
         print(f"[{i}] 端口名: {port.device} | 描述: {port.description}")
-    return acm_ports
+        desc = (port.description or "").lower()
+        if "camera" in desc:
+            print(f"    ↳ 跳过相机控制接口: {port.device}")
+            continue
+        if "at32" not in desc:
+            print(f"    ↳ 跳过非 AT32 端口: {port.device}")
+            continue
+        motor_ports.append(port)
+
+    print("\n--- 将扫描的 AT32 电机端口 ---")
+    if not motor_ports:
+        print("未发现 AT32 电机控制板端口。")
+    else:
+        for port in motor_ports:
+            print(f"  {port.device} | {port.description}")
+    return motor_ports
 
 
 def crc32_core(data_bytes):
@@ -66,7 +82,7 @@ def scan_motor_ids(port_name, id_range=range(15)):
     found_ids = []
 
     try:
-        with serial.Serial(port_name, 6000000, timeout=0.02) as ser:
+        with serial.Serial(port_name, 6000000, timeout=0.02, write_timeout=0.02) as ser:
             print(f"\n正在端口 {port_name} 上扫描电机 ID {min(id_range)}-{max(id_range)} ...")
 
             ser.reset_input_buffer()
@@ -75,8 +91,12 @@ def scan_motor_ids(port_name, id_range=range(15)):
             for motor_id in id_range:
                 packet = build_scan_packet(motor_id)
 
-                ser.write(packet)
-                ser.flush()
+                try:
+                    ser.write(packet)
+                    ser.flush()
+                except serial.SerialTimeoutException:
+                    print(f"  写入超时，跳过端口 {port_name}")
+                    break
                 time.sleep(0.01)
 
                 response = ser.read(ser.in_waiting or 0)

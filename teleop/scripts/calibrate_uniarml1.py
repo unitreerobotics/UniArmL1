@@ -4,10 +4,10 @@ UniArmL1 机械臂校准脚本
 
 用法:
     # 从臂 (8电机，双电机驱动 shoulder_lift 和 elbow_flex)
-    python teleop/scripts/calibrate_uniarm_l1.py --port /dev/ttyACM0 --id follower
+    python teleop/scripts/calibrate_uniarml1.py --port /dev/ttyACM0 --id follower
 
-    # 主臂 (6电机，单电机驱动)
-    python teleop/scripts/calibrate_uniarm_l1.py --port /dev/ttyACM4 --id leader
+    # 主臂 (8电机，双电机驱动 shoulder_lift 和 elbow_flex)
+    python teleop/scripts/calibrate_uniarml1.py --port /dev/ttyACM4 --id leader
 
 校准文件保存位置:
     teleop/robot_control/calibration/{id}.json
