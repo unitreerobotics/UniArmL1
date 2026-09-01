@@ -128,7 +128,7 @@ class KeyboardInput(InputSource):
 
     @staticmethod
     def _read_key() -> str | None:
-        if select.select([sys.stdin], [], [], 0.05)[0]:
+        if select.select([sys.stdin], [], [], 0.0)[0]:
             ch = sys.stdin.read(1)
             # Consume ESC sequences (arrow keys, function keys, etc.)
             if ch == "\x1b":

@@ -39,6 +39,7 @@ class TeleopRunner:
         record_hz: int = 50,
         show_camera: bool = True,
         use_meshcat: bool = False,
+        debug_rate: bool = False,
     ):
         self.robot = robot
         self.input = input_source
@@ -48,12 +49,23 @@ class TeleopRunner:
         self.record_hz = record_hz
         self.show_camera = show_camera
         self.use_meshcat = use_meshcat
+        self.debug_rate = debug_rate
 
         self._viz = None
         self._viz_model = None
         self._running = False
         self._last_button = {"record": False, "delete": False}
         self._next_record_t = 0.0
+        self._loop_count = 0
+        self._last_rate_t = 0.0
+        self._max_loop_dt = 0.0
+        self._debug_max_parts = {
+            "input": 0.0,
+            "map": 0.0,
+            "camera": 0.0,
+            "buttons": 0.0,
+            "record": 0.0,
+        }
 
     def setup(self) -> None:
         """Initialize robot control mode."""
@@ -62,11 +74,13 @@ class TeleopRunner:
         if q_sim_direct is not None:
             # Leader arm mode: follower uses position control
             if self.robot.bus is not None:
+                for _ in range(3):
+                    self.robot.bus.set_zero_damping()
                 self.robot.bus.control_mode = "control_mode"
+                self.robot.tgt_pos_rad = self.robot.map_sim_to_output_rad_all(q_sim_direct)
             if self.leader is not None:
                 if self.leader.bus is not None:
                     self.leader.bus.control_mode = "zero_damping"
-                self.leader.start_control_loop()
         else:
             # IK/delta mode: position control
             if self.robot.bus is not None:
@@ -100,26 +114,33 @@ class TeleopRunner:
         record_period = 1.0 / self.record_hz
         self._print_controls()
         self._next_record_t = time.monotonic()
+        self._last_rate_t = self._next_record_t
 
         
 
         try:
             while self._running:
+                loop_t0 = time.monotonic()
                 if self.input.should_quit:
                     break
 
                 # Compute target joint angles
+                part_t = time.monotonic()
                 q_sim = self._compute_q_sim()
+                self._debug_max_parts["input"] = max(self._debug_max_parts["input"], time.monotonic() - part_t)
 
                 # Visualization
                 if self._viz is not None:
                     self._display_viz(q_sim)
 
                 # Map sim -> motor and send
+                part_t = time.monotonic()
                 motor_pos_rad = self.robot.map_sim_to_output_rad_all(q_sim)
                 self.robot.tgt_pos_rad = motor_pos_rad
+                self._debug_max_parts["map"] = max(self._debug_max_parts["map"], time.monotonic() - part_t)
 
                 # Camera frames
+                part_t = time.monotonic()
                 colors = {}
                 if self.robot.cameras:
                     for name, cam in self.robot.cameras.items():
@@ -132,16 +153,23 @@ class TeleopRunner:
                         key = cv2.waitKey(1) & 0xFF
                         if key == ord("q"):
                             break
+                self._debug_max_parts["camera"] = max(self._debug_max_parts["camera"], time.monotonic() - part_t)
 
                 # Handle buttons
+                part_t = time.monotonic()
                 self._handle_buttons()
+                self._debug_max_parts["buttons"] = max(self._debug_max_parts["buttons"], time.monotonic() - part_t)
 
                 # Record data at fixed frequency
+                part_t = time.monotonic()
                 self._record_tick(colors, q_sim, record_period)
+                self._debug_max_parts["record"] = max(self._debug_max_parts["record"], time.monotonic() - part_t)
 
                 # Reset to home
                 self._handle_reset_button()
 
+                self._log_loop_rate()
+                self._max_loop_dt = max(self._max_loop_dt, time.monotonic() - loop_t0)
                 time.sleep(self.control_dt)
 
         except KeyboardInterrupt:
@@ -207,6 +235,30 @@ class TeleopRunner:
             self.recorder.add_item(q_sim, colors)
             while self._next_record_t <= now:
                 self._next_record_t += record_period
+
+    def _log_loop_rate(self) -> None:
+        if not self.debug_rate:
+            return
+        self._loop_count += 1
+        now = time.monotonic()
+        dt = now - self._last_rate_t
+        if dt >= 2.0:
+            logger.info(
+                "teleop loop rate: %.1f Hz, max loop dt: %.1f ms "
+                "(input %.1f, map %.1f, camera %.1f, buttons %.1f, record %.1f ms)",
+                self._loop_count / dt,
+                self._max_loop_dt * 1000.0,
+                self._debug_max_parts["input"] * 1000.0,
+                self._debug_max_parts["map"] * 1000.0,
+                self._debug_max_parts["camera"] * 1000.0,
+                self._debug_max_parts["buttons"] * 1000.0,
+                self._debug_max_parts["record"] * 1000.0,
+            )
+            self._loop_count = 0
+            self._last_rate_t = now
+            self._max_loop_dt = 0.0
+            for key in self._debug_max_parts:
+                self._debug_max_parts[key] = 0.0
 
     def _handle_reset_button(self) -> None:
         if self.input.get_button("X"):

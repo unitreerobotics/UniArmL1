@@ -36,7 +36,15 @@ def resolve_path(p: str) -> str:
     return str((SCRIPT_DIR / path).resolve())
 
 
-def parse_cameras(camera_strs: list[str] | None) -> dict:
+def parse_cameras(
+    camera_strs: list[str] | None,
+    fps: int = 30,
+    width: int = 640,
+    height: int = 480,
+    fourcc: str | None = "MJPG",
+    auto_wb: bool | None = True,
+    wb_temperature: int | None = None,
+) -> dict:
     """Parse camera config from ['name:id', ...] format."""
     if not camera_strs:
         return {}
@@ -48,10 +56,12 @@ def parse_cameras(camera_strs: list[str] | None) -> dict:
         name, device_id = cam_str.split(":", 1)
         cameras[name] = OpenCVCameraConfig(
             index_or_path=Path(f"/dev/video{device_id}"),
-            fps=30,
-            width=640,
-            height=480,
-            fourcc="MJPG",
+            fps=fps,
+            width=width,
+            height=height,
+            fourcc=fourcc,
+            auto_wb=auto_wb,
+            wb_temperature=wb_temperature,
         )
     return cameras
 
@@ -74,6 +84,20 @@ def main():
                         default=cfg.cameras, help="Cameras in 'name:id' format, e.g. head:0 wrist:2")
     parser.add_argument("--no-camera", action="store_true",
                         default=cfg.no_camera, help="Disable camera display")
+    parser.add_argument("--no-camera-display", action="store_true",
+                        help="Record camera frames without showing OpenCV windows")
+    parser.add_argument("--camera-fps", type=int, default=30,
+                        help="Camera capture FPS")
+    parser.add_argument("--camera-width", type=int, default=640,
+                        help="Camera capture width")
+    parser.add_argument("--camera-height", type=int, default=480,
+                        help="Camera capture height")
+    parser.add_argument("--camera-fourcc", type=str, default="MJPG",
+                        help="Camera FOURCC format, e.g. MJPG, YUYV, or none")
+    parser.add_argument("--no-auto-wb", action="store_true",
+                        help="Disable camera auto white balance")
+    parser.add_argument("--wb-temperature", type=int,
+                        help="Manual white balance temperature")
     parser.add_argument("--record", "-r", action="store_true",
                         default=cfg.record, help="Enable data recording")
     parser.add_argument("--task-dir", type=str,
@@ -86,6 +110,8 @@ def main():
                         default=cfg.meshcat, help="Enable Meshcat visualization")
     parser.add_argument("--no-real-robot", action="store_true",
                         default=cfg.no_real_robot, help="Run without real robot (simulation mode)")
+    parser.add_argument("--debug-rate", action="store_true",
+                        help="Print teleoperation loop rate for latency diagnosis")
 
     args = parser.parse_args()
 
@@ -93,7 +119,15 @@ def main():
     urdf_path = resolve_path(args.urdf)
 
     # Camera config
-    cameras = {} if args.no_camera else parse_cameras(args.cameras)
+    cameras = {} if args.no_camera else parse_cameras(
+        args.cameras,
+        fps=args.camera_fps,
+        width=args.camera_width,
+        height=args.camera_height,
+        fourcc=None if args.camera_fourcc.lower() == "none" else args.camera_fourcc,
+        auto_wb=not args.no_auto_wb,
+        wb_temperature=args.wb_temperature,
+    )
 
     # Follower arm
     follower_config = UniArmL1RobotConfig(
@@ -140,8 +174,9 @@ def main():
         recorder=recorder,
         leader=leader,
         record_hz=args.record_hz,
-        show_camera=not args.no_camera,
+        show_camera=not args.no_camera and not args.no_camera_display,
         use_meshcat=args.meshcat,
+        debug_rate=args.debug_rate,
     )
 
     logger.info(f"Starting teleop: input={args.input}, record={'enabled' if args.record else 'disabled'}")

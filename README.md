@@ -115,7 +115,7 @@ sudo chmod 777 /dev/ttyACM*
 
 ### **3. 修改配置文件**
 
-默认配置保存在 `teleop/teleop_config.yaml`，可直接修改，也可通过命令行参数覆盖，详见[参数说明](#parameters)。
+默认配置保存在 `teleop/robot_control/arm/config_uniarm_l1.py` 的 `TeleopConfig` 中，可直接修改，也可通过命令行参数覆盖，详见[参数说明](#parameters)。
 
 
 ### **4. 启动遥操作**
@@ -136,7 +136,7 @@ python teleop/teleop.py -i vr
 VR 头戴打开 XRoboToolkit app，输入 PC 端IP，点击连接，勾选控制面板中的 controller、send；电脑端打开 XRoboToolkit-PC-Service软件，按住手柄侧键即可开始遥操作。
 
 #### 4.2 键盘模式
-启动之后按住某个方向键机械臂会对应缓慢移动。
+启动之后按终端提示中的按键，机械臂会对应缓慢移动。
 ```bash
 python teleop/teleop.py -i keyboard
 ```
@@ -173,8 +173,8 @@ python teleop/teleop.py -i vr --record --task-dir ./data/pick_place --task-goal 
 以下是 `teleop.py` 支持的命令行参数及其说明：
 
 - `--input`, `-i`: 输入源模式，可选值：`vr` (VR 手柄)、`keyboard` (键盘)、`leader` (主从臂)。默认值：`vr`。
-- `--port`, `-p`: 从臂串口端口。默认值：`/dev/ttyACM1`。
-- `--leader-port`: 主臂串口端口，仅在主从模式下使用。默认值：`/dev/ttyACM2`。
+- `--port`, `-p`: 从臂串口端口。默认值：`/dev/ttyACM0`，建议使用 check_port_all.py 确认。
+- `--leader-port`: 主臂串口端口，仅在主从模式下使用。默认值：`/dev/ttyACM3`，建议使用 check_port_all.py 确认。
 - `--urdf`: URDF 文件路径。默认值：`assets/uniarml1/urdf/UniArmL1.urdf`。
 - `--mesh-dir`: 网格目录路径。默认值：`assets/uniarml1/urdf/`。
 - `--cameras`, `-c`: 相机配置，格式为 `name:id`，例如 `head:0 wrist:2`。可以指定多个。
@@ -185,7 +185,27 @@ python teleop/teleop.py -i vr --record --task-dir ./data/pick_place --task-goal 
 - `--record-hz`: 录制频率 (Hz)。默认值：50。
 - `--meshcat`: 启用 Meshcat 可视化。默认不启用。
 - `--vr-scale`: VR 增量缩放因子。默认值：1.2。
+- `--no-real-robot`: 无真实机械臂运行，用于仿真/调试代码流程。默认不启用。
 
+## 推荐稳定采集命令
+
+串口和相机编号需要根据当前设备扫描结果调整。
+
+```bash
+python teleop/teleop.py -i leader \
+  --port /dev/ttyACM6 \
+  --leader-port /dev/ttyACM1 \
+  --record \
+  --task-dir ./collected_data/task_name \
+  --task-goal "describe the task goal" \
+  --record-hz 15 \
+  --camera-fps 15 \
+  --camera-width 640 \
+  --camera-height 480 \
+  --camera-fourcc none \
+  --no-camera-display \
+  -c head:0 wrist:2
+```
 
 ## 🕊 训练部署
 采集的数据可直接用于 [unitree_lerobot](https://github.com/unitreerobotics/unitree_lerobot) 的模仿学习训练与部署，详见 [unitree_lerobot 文档](https://github.com/unitreerobotics/unitree_lerobot)。

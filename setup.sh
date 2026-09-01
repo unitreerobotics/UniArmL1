@@ -10,6 +10,7 @@ conda config --add channels http://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/c
 CONDA_FORGE_MIRROR="http://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/conda-forge/"
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
+GREEN='\033[0;32m'
 NC='\033[0m'
 
 echo -e "${GREEN}=== XR Teleoperate 环境安装脚本 ===${NC}"

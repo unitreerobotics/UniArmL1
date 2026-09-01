@@ -272,15 +272,14 @@ class UniArmL1:
         print("\n[Phase 1/2] Please move arm to [zero position]. Press Enter to lock zero...")
         zero_offsets = {}  # motor_id -> raw value
         while True:
-            self.bus.set_zero_damping()
+            fresh_states = self.bus.set_zero_damping()
             time.sleep(0.05)
 
             # Read raw data for all motors
             motor_raw_values = {}
-            for motor_id in self.bus.motor_ids:
-                st = self.bus.motors.motor_states.get(motor_id)
-                if st:
-                    motor_raw_values[motor_id] = st.OutPos
+            for st in fresh_states:
+                if st.get("OutPos") is not None:
+                    motor_raw_values[st["motor_id"]] = st["OutPos"]
 
             # Display all motor data (sorted by motor ID)
             line_parts = []
@@ -321,15 +320,14 @@ class UniArmL1:
 
         last_print = 0.0
         while True:
-            self.bus.set_zero_damping()
+            fresh_states = self.bus.set_zero_damping()
             time.sleep(0.05)
 
             # Read raw data for all motors
             motor_raw_values = {}
-            for motor_id in self.bus.motor_ids:
-                st = self.bus.motors.motor_states.get(motor_id)
-                if st:
-                    motor_raw_values[motor_id] = st.OutPos
+            for st in fresh_states:
+                if st.get("OutPos") is not None:
+                    motor_raw_values[st["motor_id"]] = st["OutPos"]
 
             # Update range for each motor
             for motor_id in self.motor_ids:
@@ -774,11 +772,15 @@ class UniArmL1:
             self._control_thread.join(timeout=1)
     def _control_loop_worker(self):
         '''控制循环线程函数'''
-        for cam in self.cameras.values():
+        failed_cameras = []
+        for name, cam in self.cameras.items():
             try:
-                cam.connect()
+                cam.connect(warmup=False)
             except Exception as e:
                 logger.warning(f"Camera connect failed: {e}")
+                failed_cameras.append(name)
+        for name in failed_cameras:
+            self.cameras.pop(name, None)
         while self._running:
             self._position_control_step()
             time.sleep(0.01)
