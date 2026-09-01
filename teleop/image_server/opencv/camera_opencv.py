@@ -123,6 +123,7 @@ class OpenCVCamera(Camera):
         self.frame_lock: Lock = Lock()
         self.latest_frame: NDArray[Any] | None = None
         self.new_frame_event: Event = Event()
+        self._last_read_warning_t = 0.0
 
         self.rotation: int | None = get_cv2_rotation(config.rotation)
         self.backend: int = get_cv2_backend()
@@ -168,13 +169,18 @@ class OpenCVCamera(Camera):
                 f"Failed to open {self}. Check if the camera is connected and the index/path is correct."
             )
 
-        self._configure_capture_settings()
+        try:
+            self._configure_capture_settings()
 
-        if warmup:
-            start_time = time.time()
-            while time.time() - start_time < self.warmup_s:
-                self.read()
-                time.sleep(0.1)
+            if warmup:
+                start_time = time.time()
+                while time.time() - start_time < self.warmup_s:
+                    self.read()
+                    time.sleep(0.1)
+        except Exception:
+            self.videocapture.release()
+            self.videocapture = None
+            raise
 
         logger.info(f"{self} connected.")
 
@@ -224,6 +230,29 @@ class OpenCVCamera(Camera):
         else:
             self._validate_fps()
 
+        self._configure_image_controls()
+
+    def _set_optional_prop(self, prop: int, value: float | int | bool, name: str) -> None:
+        if self.videocapture is None:
+            raise DeviceNotConnectedError(f"{self} videocapture is not initialized")
+        success = self.videocapture.set(prop, float(value))
+        actual = self.videocapture.get(prop)
+        if not success:
+            logger.warning(f"{self} failed to set {name}={value} (actual={actual}).")
+
+    def _configure_image_controls(self) -> None:
+        if self.config.auto_wb is not None:
+            self._set_optional_prop(cv2.CAP_PROP_AUTO_WB, 1 if self.config.auto_wb else 0, "auto_wb")
+        if self.config.wb_temperature is not None:
+            self._set_optional_prop(cv2.CAP_PROP_WB_TEMPERATURE, self.config.wb_temperature, "wb_temperature")
+        if self.config.auto_exposure is not None:
+            # V4L2 commonly uses 3 for aperture-priority auto and 1 for manual.
+            self._set_optional_prop(cv2.CAP_PROP_AUTO_EXPOSURE, 3 if self.config.auto_exposure else 1, "auto_exposure")
+        if self.config.exposure is not None:
+            self._set_optional_prop(cv2.CAP_PROP_EXPOSURE, self.config.exposure, "exposure")
+        if self.config.gain is not None:
+            self._set_optional_prop(cv2.CAP_PROP_GAIN, self.config.gain, "gain")
+
     def _validate_fps(self) -> None:
         """Validates and sets the camera's frames per second (FPS)."""
 
@@ -237,7 +266,11 @@ class OpenCVCamera(Camera):
         actual_fps = self.videocapture.get(cv2.CAP_PROP_FPS)
         # Use math.isclose for robust float comparison
         if not success or not math.isclose(self.fps, actual_fps, rel_tol=1e-3):
-            raise RuntimeError(f"{self} failed to set fps={self.fps} ({actual_fps=}).")
+            logger.warning(
+                f"{self} failed to set fps={self.fps} ({actual_fps=}). "
+                f"Continuing with actual fps={actual_fps}."
+            )
+            self.fps = actual_fps
 
     def _validate_fourcc(self) -> None:
         """Validates and sets the camera's FOURCC code."""
@@ -274,15 +307,24 @@ class OpenCVCamera(Camera):
 
         actual_width = int(round(self.videocapture.get(cv2.CAP_PROP_FRAME_WIDTH)))
         if not width_success or self.capture_width != actual_width:
-            raise RuntimeError(
-                f"{self} failed to set capture_width={self.capture_width} ({actual_width=}, {width_success=})."
+            logger.warning(
+                f"{self} failed to set capture_width={self.capture_width} "
+                f"({actual_width=}, {width_success=}). Continuing with actual width."
             )
+            self.capture_width = actual_width
 
         actual_height = int(round(self.videocapture.get(cv2.CAP_PROP_FRAME_HEIGHT)))
         if not height_success or self.capture_height != actual_height:
-            raise RuntimeError(
-                f"{self} failed to set capture_height={self.capture_height} ({actual_height=}, {height_success=})."
+            logger.warning(
+                f"{self} failed to set capture_height={self.capture_height} "
+                f"({actual_height=}, {height_success=}). Continuing with actual height."
             )
+            self.capture_height = actual_height
+
+        if self.rotation in [cv2.ROTATE_90_CLOCKWISE, cv2.ROTATE_90_COUNTERCLOCKWISE]:
+            self.width, self.height = self.capture_height, self.capture_width
+        else:
+            self.width, self.height = self.capture_width, self.capture_height
 
     @staticmethod
     def find_cameras() -> list[dict[str, Any]]:
@@ -449,7 +491,11 @@ class OpenCVCamera(Camera):
             except DeviceNotConnectedError:
                 break
             except Exception as e:
-                logger.warning(f"Error reading frame in background thread for {self}: {e}")
+                now = time.monotonic()
+                if now - self._last_read_warning_t >= 2.0:
+                    logger.warning(f"Error reading frame in background thread for {self}: {e}")
+                    self._last_read_warning_t = now
+                time.sleep(0.01)
 
     def _start_read_thread(self) -> None:
         """Starts or restarts the background read thread if it's not running."""

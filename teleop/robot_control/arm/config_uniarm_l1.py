@@ -102,7 +102,7 @@ class TeleopConfig:
     port: str = "/dev/ttyACM0"  # Follower arm serial port
     leader_port: str = "/dev/ttyACM3"  # Leader arm serial port
     urdf_path: str = "../assets/uniarml1/urdf/UniArmL1.urdf"
-    cameras: list[str] = field(default_factory=lambda: ["head:1 wrist:2"])
+    cameras: list[str] = field(default_factory=lambda: ["head:1", "wrist:2"])
     no_camera: bool = False
     record: bool = False
     task_dir: str = "./data/teleop"

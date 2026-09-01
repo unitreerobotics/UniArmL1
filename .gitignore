@@ -4,3 +4,8 @@ __pycache__/
 *.pyc
 .DS_Store
 
+# Local dependencies and runtime outputs
+teleop/xrobotoolkit/
+data/
+collected_data/
+camera_check_outputs/
